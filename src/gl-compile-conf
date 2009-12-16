@@ -182,9 +182,8 @@ sub parse_conf_file
         # repo(s)
         elsif (/^repo (.*)/)
         {
-            # grab the list and expand any @stuff in it
+            # grab the list; don't expand @stuff inside
             @repos = split ' ', $1;
-            @repos = expand_list ( @repos );
         }
         # actual permission line
         elsif (/^(-|R|RW|RW\+) (.* )?= (.+)/)
@@ -199,9 +198,7 @@ sub parse_conf_file
             # prefix them with "refs/heads/"
             @refs = map { m(^(refs|PATH)/) or s(^)(refs/heads/); $_ } @refs;
 
-            # expand the user list, unless it is just "@all"
-            @users = expand_list ( @users )
-                unless (@users == 1 and $users[0] eq '@all');
+            # (we dont expand the user list in this branch)
             do  { die "$ABRT bad username $_ PATT is $USERNAME_PATT,\n" unless $_ =~ $USERNAME_PATT } for @users;
 
             # ok, we can finally populate the %repos hash
@@ -315,6 +312,8 @@ for my $fragment_file (glob("conf/fragments/*.conf"))
 
 my $compiled_fh = wrap_open( ">", $GL_CONF_COMPILED );
 print $compiled_fh Data::Dumper->Dump([\%repos], [qw(*repos)]);
+# in this branch, we need the group maps too
+print $compiled_fh Data::Dumper->Dump([\%groups], [qw(*groups)]) if %groups;
 close $compiled_fh or die "$ABRT close compiled-conf failed: $!\n";
 
 # ----------------------------------------------------------------------------

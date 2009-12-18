@@ -26,12 +26,9 @@ use warnings;
 # ----------------------------------------------------------------------------
 
 our ($GL_CONF_COMPILED, $PERSONAL);
-our %repos;
 
 # we should already have the GL_RC env var set when we enter this hook
 die "parse $ENV{GL_RC} failed: "       . ($! or $@) unless do $ENV{GL_RC};
-# then "do" the compiled config file, whose name we now know
-die "parse $GL_CONF_COMPILED failed: " . ($! or $@) unless do $GL_CONF_COMPILED;
 
 # ----------------------------------------------------------------------------
 #       start...
@@ -55,12 +52,8 @@ $perm = '+' if $ref =~ m(refs/tags/) and $oldsha ne ('0' x 40);
 # notice that ref delete looks like a rewind, as it should
 $perm = '+' if $oldsha ne $merge_base;
 
-my @allowed_refs;
-# personal stuff -- right at the start in the new regime, I guess!
-push @allowed_refs, { "$PERSONAL/$ENV{GL_USER}/" => "RW+" } if $PERSONAL;
-# we want specific perms to override @all, so they come first
-push @allowed_refs, @ { $repos{$ENV{GL_REPO}}{$ENV{GL_USER}} || [] };
-push @allowed_refs, @ { $repos{$ENV{GL_REPO}}{'@all'} || [] };
+our @allowed_refs;
+eval $ENV{GL_ALLOWED_REFS} if $ENV{GL_ALLOWED_REFS};
 
 # prepare the list of refs to be checked
 
@@ -70,7 +63,7 @@ push @allowed_refs, @ { $repos{$ENV{GL_REPO}}{'@all'} || [] };
 # been specified
 
 my @refs = ($ref);      # the first ref to check is the real one
-if (exists $repos{$ENV{GL_REPO}}{PATH_LIMITS}) {
+if ($ENV{GL_ALLOWED_REFS} =~ /'PATH\//) {
     # this is special to git -- the hash of an empty tree
     my $empty='4b825dc642cb6eb9a060e54bf8d69288fbee4904';
     # well they're not really "trees" but $empty is indeed the empty tree so

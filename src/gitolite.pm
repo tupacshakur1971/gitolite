@@ -124,4 +124,60 @@ sub report_basic
         print "$perm\t$r\n\r" if $perm;
     }
 }
+
+# ----------------------------------------------------------------------------
+#       membership info
+# ----------------------------------------------------------------------------
+
+# given a plain reponame or username, return a list of all the groups it is a
+# member of
+
+sub get_memberships {
+    my $base = shift;
+    for my $g (sort keys %groups) {
+        push @ret, $g if $groups{$g}{$base};
+    }
+    return @ret;
+}
+
+# ----------------------------------------------------------------------------
+#       check access for extended user against extended repo for perm
+# ----------------------------------------------------------------------------
+
+# given a list of repos/repo groups, a list of users/user groups, and a
+# "perm", check if any of the user/groups is allowed $perm access to any of
+# the repo/groups
+
+# XXX WARNING.  This mostly breaks "deny" rules, because the order is no
+# longer guaranteed.  Deny rules will still work if *all* access to a repo for
+# a user is in *one* "repo" stanza (the ordering *within* the sequence of "R",
+# "RW", etc., rules in one "repo" stanza is preserved).  What is no longer
+# preserved is the ordering between entire stanzas.
+
+sub check_access {
+    my ($xrr, $xur, $perm) = @_;
+    # note that the first 2 args are listrefs
+
+    my $found=0;
+    my @allowed_refs;
+
+    for $r (@$xrr) {
+        for $u (@$xur) {
+            # finding R (or W) for *any* repo/user pair is enough
+            $found = 1 if ( not $found and $repos{$r}{$perm}{$u} );
+
+            # gather level 2 permissions if 'W'riting
+            push @allowed_refs, @ { $repos{$r}{$u} } if ($perm eq 'W' and $repos{$r}{$u});
+        }
+    }
+
+    # personal branches come first
+    unshift @allowed_refs, { "$PERSONAL/$ENV{GL_USER}/" => "RW+" }
+        if $found and $PERSONAL and $perm eq 'W';
+
+    $ENV{GL_ALLOWED_REFS} = Data::Dumper->Dump([\@allowed_refs], [qw(*allowed_refs)]);
+
+    return $found;
+}
+
 1;

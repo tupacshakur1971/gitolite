@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use Data::Dumper;
 
 # === auth-command ===
 # the command that GL users actually run
@@ -28,6 +29,7 @@ our ($GL_LOGT, $GL_CONF_COMPILED, $REPO_BASE, $GIT_PATH, $REPO_UMASK, $GL_ADMIND
 # and these are set by gitolite.pm
 our ($R_COMMANDS, $W_COMMANDS, $REPONAME_PATT);
 our %repos;
+our %groups;
 
 # the common setup module is in the same directory as this running program is
 my $bindir = $0;
@@ -92,14 +94,21 @@ die "bad command: $cmd.  Make sure the repo name is exactly as in your config\n"
 # we know the user and repo; we just need to know what perm he's trying
 my $perm = ($verb =~ $R_COMMANDS ? 'R' : 'W');
 
+# get the extended userlist and repolist for the current $user and $repo.
+# This is the list of all groups of which the item is a member
+my @xuser = ($user, &get_memberships($user), '@all');
+my @xrepo = ($repo, &get_memberships($repo)        );
+
 die "$perm access for $repo DENIED to $user\n"
-    unless $repos{$repo}{$perm}{$user}
-        or $repos{$repo}{$perm}{'@all'};
+    unless check_access(\@xrepo, \@xuser, $perm);
 
 # create the repo if it doesn't already exist and the user has "W" access
 my $repo_base_abs = ( $REPO_BASE =~ m(^/) ? $REPO_BASE : "$ENV{HOME}/$REPO_BASE" );
 if ( not -d "$repo_base_abs/$repo.git" ) {
-    if ( $repos{$repo}{W}{$user} or $repos{$repo}{W}{'@all'} ) {
+    # XXX another change in behaviour: repos can only be autovived by a
+    # "write" operation because checking for a write is now expensive enough
+    # that we won't do it.
+    if ( $perm eq 'W' ) {
         wrap_chdir("$repo_base_abs");
         new_repo($repo, "$GL_ADMINDIR/src/hooks");
         wrap_chdir($ENV{HOME});

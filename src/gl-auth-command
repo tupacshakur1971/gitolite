@@ -54,7 +54,8 @@ umask($REPO_UMASK);
 # ----------------------------------------------------------------------------
 
 # first, fix the biggest gripe I have with gitosis, a 1-line change
-my $user=$ENV{GL_USER}=shift;       # there; now that's available everywhere!
+# multi-user setup: the username now comes from $USER if arg1 is not available
+my $user = $ENV{GL_USER} = shift || $ENV{USER};
 
 # ----------------------------------------------------------------------------
 #       sanity checks on SSH_ORIGINAL_COMMAND

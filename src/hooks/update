@@ -27,7 +27,9 @@ use warnings;
 
 our ($GL_CONF_COMPILED, $PERSONAL);
 
-# we should already have the GL_RC env var set when we enter this hook
+# people with shell access want to be able to bypass gitolite completely
+exit 0 unless exists $ENV{GL_RC};
+# but if it does exist, it better parse right!
 die "parse $ENV{GL_RC} failed: "       . ($! or $@) unless do $ENV{GL_RC};
 
 # ----------------------------------------------------------------------------

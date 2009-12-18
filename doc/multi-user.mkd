@@ -1,0 +1,87 @@
+gitolite: using different Unix accounts for each developer
+----------------------------------------------------------
+
+...where each developer has her own Unix account!
+
+BACKGROUND
+----------
+
+We assume that write access to required files/directories is actually allowed
+by the OS, via other means such as group membership (including chmod g+s on
+those directories etc.).  We now want to restrict what the OS *would* have
+allowed; viz -- per-branch limits.
+
+The main entry point is gl-auth-command, which takes a username as an
+argument.  This needs to change to use the current user ($USER) if an argument
+is not provided.
+
+The big change is that gitolite should not mess with authkeys.  It doesn't
+make sense, since there is no "single" user who owns all the repos.  We assume
+that's been handled elsewhere, and each user will end up running the
+`gl-auth-command` as an ssh forced-command.
+
+Fedora also wants to lose the automatic install and such capabilities; we're
+essentially stripping it down to just what's needed to support the per-branch
+permissions.
+
+THINGS TO DO/MAKE SURE OF
+-------------------------
+
+  * make sure no user has a ~/.gitolite.rc, otherwise the system rc (in
+    `/etc/gitolite/gitolite.rc`) will not get picked up.
+
+  * in `/etc/gitolite/gitolite.rc`, set up `$REPO_BASE` and `$GL_ADMINDIR`
+    correctly so *they* will get picked up.  **Please make sure both are given
+    absolute paths!**
+
+  * make sure `$GL_ADMINDIR/src/hooks/update` exists.  **Even if you are sure
+    you will create repos extraneously and setup the hooks yourself, please do
+    this.**  Otherwise, the first time you create a repo using gitolite
+    itself, and forget to put the hook in, you will find that branch-level
+    restrictions do not work :(
+
+INSTALLING
+----------
+
+See multi-user-test.notes for details on install steps.
+
+ADMINISTERING
+-------------
+
+If you add new repos using gitolite's methods, the perms and hook will work
+out fine, but if you add them through external means, make sure of the perms
+and make sure that the "update" hook gets installed before any user tries to
+push anything.  No update hook means no per-branch access control!
+
+UPGRADING GITOLITE
+------------------
+
+If gitolite is upgraded, you'd have to manually update all the hooks in each
+repo, as well as in `$GL_ADMINDIR/src/hooks`, apart from putting the code
+itself in /usr/local/bin or wherever.
+
+OTHER NOTES
+-----------
+
+The following files will be handled differently in this version:
+
+  * ga-post-update-hook -- this is the hook that the special "gitolite-admin"
+    repo gets in its hooks directory.  We just install it manually in this
+    setup; it's a one-time thing unless upstream gitolite changes it in any
+    way.  It needs to be copied to
+
+        $REPO_BASE/gitolite-admin.git/hooks/post-update
+
+  * hooks -- this directory contains the all-important "update" hook that
+    *every* repo **must** have (**no hooks/update, no per-branch
+    restrictions!**).  We put this in `$GL_ADMINDIR/src/hooks`.
+
+The following files are not used/irrelevant/their functions will be handled
+manually:
+
+  * gl-conf-convert -- who cares!
+  * gl-easy-install -- who cares!
+  * gl-emergency-addkey -- who cares!
+  * gl-install -- about the only thing it does that may be useful is updating
+    hooks on existing repos if gitolite upstream changes; since that will be
+    handled externally, we dont need this

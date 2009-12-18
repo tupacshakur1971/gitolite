@@ -1,0 +1,113 @@
+testing the multi-user setup
+----------------------------
+
+### step 1 -- system level stuff
+
+  * created 4 users fc1 fc2 fc3 fc4 (didn't go upto 12, heh!)
+
+  * made them all part of "fcguys" group; `id fc1` prints the following (other
+    3 similar):
+
+        uid=508(fc1) gid=508(fc1) groups=508(fc1),512(fcguys)
+
+    Do not change their ~/.ssh/authkeys to have a forcedcommand yet.
+
+### step 2 -- gitolite stuff
+
+  * copy the following files to /usr/local/bin:
+
+        gl-auth-command
+        gitolite.pm
+        gl-compile-conf
+
+  * create `/etc/gitolite/gitolite.rc` with the following settings (other
+    settings left as is; not relevant for this test):
+
+        $REPO_BASE      =   "/var/fcrepos";
+        $REPO_UMASK     =   0007; # gets you 'rwxrwx---'
+        $PROJECTS_LIST  =   "/var/projects.list";   # for gitweb
+        $GL_ADMINDIR    =   "/var/gladm";
+
+  * make directories `/var/fcrepos` and `/var/gladm`, looking like this:
+
+        drwxrwsr-x 2 root fcguys 4096 2009-12-15 10:47 /var/fcrepos/
+        drwxrwsr-x 2 root fcguys 4096 2009-12-15 10:47 /var/gladm/
+
+    The first will hold the repos themselves, the second will hold all the
+    ADMIN stuff (the compiled config file, the logs, etc).
+
+### step 3 -- seeding the gitolite-admin repo
+
+  * I designated "fc1" as the admin, to start with.  Login as that user and do
+    the following:
+
+        # on the server
+
+        umask 0007
+        cd /var/gladm       # $GL_ADMINDIR
+        mkdir conf logs src src/hooks
+        cp /some/path/update src/hooks
+            # get the update hook and put it there.  Please :)
+
+        # yes this is a kludge, but it solves a catch-22 :)
+        cat <<EOF > conf/gitolite.conf-compiled.pm
+        %repos = (
+          'gitolite-admin' => {
+            'fc1' => [
+              {
+                'refs/.*' => 'RW+'
+              }
+            ],
+            'W' => {
+              'fc1' => 1
+            },
+            'R' => {
+              'fc1' => 1
+            }
+          },
+        );
+        EOF
+
+        cd /var/fcrepos
+        mkdir gitolite-admin.git
+        cd    gitolite-admin.git
+        git init --bare
+
+        # copy the two hooks needed
+        cp /some/path/update hooks/update
+        cp /some/path/ga-post-update-hook hooks/post-update
+        # check ug+x on both
+        chmod 755 hooks/update hooks/post-update
+
+  * *Now* put in the forcecommand for user "fc1".
+
+  * Go back to the client, prepare a proper repo, and push it:
+
+        # on client
+        mkdir gitolite-admin
+        cd    gitolite-admin
+        mkdir conf
+        cat <<EOF > conf/gitolite.conf
+        repo gitolite-admin
+            RW+     =   fc1
+        EOF
+        git init; git add .; git commit -m start
+        git remote add origin fc1@server:gitolite-admin
+        git push origin master
+
+### step 4 -- the other repos
+
+Still in the same dir, add other repos to the conf file:
+
+    repo foo
+        RW+     =   fc1
+
+then save, add, commit, and push
+
+Now go to your local copy of the "foo" repo, and:
+
+    git remote add newhost fc1@server:foo
+    git push --all origin
+
+(You might want to consider `git push --mirror origin` if you like).  Now this
+repo is available for anyone who has access.

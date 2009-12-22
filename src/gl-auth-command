@@ -58,7 +58,7 @@ umask($REPO_UMASK);
 # if the first argument is a "-s", this user is allowed to get a shell using
 # this key
 my $shell_allowed = 0;
-if ($ARGV[0] eq '-s') {
+if (@ARGV and $ARGV[0] eq '-s') {
     $shell_allowed = 1;
     shift;
 }

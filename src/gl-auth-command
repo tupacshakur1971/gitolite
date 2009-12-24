@@ -85,8 +85,9 @@ unless ($ENV{SSH_ORIGINAL_COMMAND}) {
 
 my $cmd = $ENV{SSH_ORIGINAL_COMMAND};
 # people allowed to get a shell can get basic access info by asking nicely
-if ($shell_allowed and $cmd eq 'info') {
+if ($cmd eq 'info') {
     &report_basic($GL_ADMINDIR, $GL_CONF_COMPILED, $user);
+    print "you also have shell access\n\r" if $shell_allowed;
     exit 1;
 }
 
@@ -119,7 +120,7 @@ my $perm = ($verb =~ $R_COMMANDS ? 'R' : 'W');
 # get the extended userlist and repolist for the current $user and $repo.
 # This is the list of all groups of which the item is a member
 my @xuser = ($user, &get_memberships($user), '@all');
-my @xrepo = ($repo, &get_memberships($repo)        );
+my @xrepo = ($repo, &get_memberships($repo), '@all');
 
 die "$perm access for $repo DENIED to $user\n"
     unless check_access(\@xrepo, \@xuser, $perm);

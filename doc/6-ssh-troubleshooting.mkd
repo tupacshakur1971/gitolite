@@ -1,5 +1,20 @@
 # ssh troubleshooting
 
+Update 2009-12-23: most of this document is now of historical interest and
+will be totally revamped when I have time.  For now, just note this amendment.
+
+The document below says "we can't use the same key for both [gitolite access
+and shell access]...".  We've managed (thanks to an idea from Jesse Keating)
+to get around this.  Now it *is* possible for a single key to allow both
+gitolite access *and* shell access.
+
+This is done by placing such a user in a special `@SHELL` group in the
+gitolite config file.  As usual, please see `conf/example.conf` for more info
+on this, since I'm using that as a central place to document anything
+concerned with the conf file.
+
+----
+
 Ssh has always been the biggest troublespot in all this.  While gitolite makes
 it as easy as possible, you might still run into trouble sometimes.
 
@@ -148,8 +163,9 @@ Here's how it all hangs together.
 
     Luckily, ssh has a very convenient way of capturing all the connection
     information (username, hostname, port number (if it's not the default 22),
-    and keypair to be used) in one "paragraph".  This is what the para looks
-    like for us (the easy install script puts it there the first time):
+    and keypair to be used) in one "paragraph" of `~/.ssh/config`.  This is
+    what the para looks like for us (the easy install script puts it there the
+    first time):
 
         host gitolite
              user git

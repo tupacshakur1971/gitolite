@@ -191,6 +191,7 @@ sub parse_conf_file
         {
             my $perms = $1;
             my @refs; @refs = split(' ', $2) if $2;
+            @refs = expand_list ( @refs );
             my @users = split ' ', $3;
 
             # if no ref is given, this PERM applies to all refs

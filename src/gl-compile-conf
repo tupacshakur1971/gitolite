@@ -123,9 +123,6 @@ sub expand_list
 
     for my $item (@list)
     {
-        # we test with the slightly more relaxed pattern here; we'll catch the
-        # "/" in user name thing later; it doesn't affect security anyway
-        die "$ABRT bad user or repo name $item\n" unless $item =~ $REPONAME_PATT or $item =~ $USERNAME_PATT;
         if ($item =~ /^@/)      # nested group
         {
             die "$ABRT undefined group $item\n" unless $groups{$item};
@@ -185,6 +182,7 @@ sub parse_conf_file
         {
             # grab the list; don't expand @stuff inside
             @repos = split ' ', $1;
+            do  { die "$ABRT bad reponame $_\n" unless $_ =~ $REPONAME_PATT } for @repos;
         }
         # actual permission line
         elsif (/^(-|R|RW|RW\+) (.* )?= (.+)/)

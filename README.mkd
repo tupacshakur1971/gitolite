@@ -1,5 +1,7 @@
 # gitolite
 
+EDITANDO UN POCO
+
 >   [Update 2009-10-28: apart from all the nifty new features, there's now an
 >   "easy install" script in the src directory.  This script can be used to
 >   install as well as upgrade a gitolite install.  Please see the INSTALL
